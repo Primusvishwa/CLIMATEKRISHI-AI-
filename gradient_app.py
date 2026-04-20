@@ -268,7 +268,7 @@ st.info(
 )
 
     # ── Full Comparison Table ─────────────────────────────────────────────────
-    with st.expander("📋 Full Comparison Table"):
+with st.expander("📋 Full Comparison Table"):
         categories_clean = ["Global Warming (kg CO₂-eq)", "Freshwater Eutrophication (kg P-eq)",
                             "Terrestrial Acidification (kg SO₂-eq)", "Terrestrial Ecotoxicity (CTUe)"]
         comparison_df = pd.DataFrame({

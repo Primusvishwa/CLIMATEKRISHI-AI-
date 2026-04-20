@@ -185,6 +185,88 @@ with tab1:
 
     st.markdown("---")
 
+    # ══════════════════════════════════════════════════════════════════════════════
+# 🌱 CARBON CREDIT CALCULATOR (CCTS ONLY)
+# ══════════════════════════════════════════════════════════════════════════════
+
+st.subheader("🌱 Carbon Credit Potential (CCTS)")
+
+# ── Inputs ────────────────────────────────────────────────────────────────────
+col1, col2 = st.columns(2)
+
+with col1:
+    buffer_pct = st.slider(
+        "Permanence Buffer (%)",
+        min_value=10, max_value=30, value=20, step=1,
+        help="Applied only to soil carbon credits"
+    )
+
+with col2:
+    field_size = st.number_input(
+        "Field Size (ha)",
+        min_value=0.1, value=1.0, step=0.1
+    )
+
+# ── SOC Scenario ──────────────────────────────────────────────────────────────
+soc_choice = st.selectbox(
+    "Soil Carbon Scenario",
+    [
+        "Low Sequestration (Baseline Systems)",
+        "Typical Sequestration (Improved Practices)",
+        "High Sequestration (Advanced Systems)"
+    ]
+)
+
+if soc_choice == "Low Sequestration (Baseline Systems)":
+    SOC_RATE = 0.4
+elif soc_choice == "Typical Sequestration (Improved Practices)":
+    SOC_RATE = 0.8
+else:
+    SOC_RATE = 1.155
+
+# ── Constants ─────────────────────────────────────────────────────────────────
+C_TO_CO2 = 3.667
+CCTS_LOW  = 600
+CCTS_HIGH = 900
+
+buffer_fraction = buffer_pct / 100
+
+# ── Credits Calculation ───────────────────────────────────────────────────────
+# Emission Reduction Credits
+er_credits_ha = max(0, (conv_out[0] - blend_out[0]) / 1000)
+er_credits_total = er_credits_ha * field_size
+
+# Soil Carbon Credits
+soc_gross_ha = SOC_RATE * C_TO_CO2
+soc_credits_ha = soc_gross_ha * (1 - buffer_fraction)
+soc_credits_total = soc_credits_ha * field_size
+
+# Total
+total_credits = er_credits_total + soc_credits_total
+
+# ── Market Value ──────────────────────────────────────────────────────────────
+ccts_low_val  = total_credits * CCTS_LOW
+ccts_high_val = total_credits * CCTS_HIGH
+
+# ── Display ───────────────────────────────────────────────────────────────────
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.metric("📉 Emission Reduction", f"{er_credits_total:.3f} t CO₂-eq")
+
+with col2:
+    st.metric("🌱 Soil Carbon", f"{soc_credits_total:.3f} t CO₂-eq")
+
+with col3:
+    st.metric("🏆 Total Credits", f"{total_credits:.3f} t CO₂-eq")
+
+st.markdown("##### 💰 Estimated Value (CCTS)")
+
+st.info(
+    f"₹{ccts_low_val:,.0f} – ₹{ccts_high_val:,.0f}\n\n"
+    f"₹{CCTS_LOW}–₹{CCTS_HIGH} per t CO₂-eq"
+)
+
     # ── Full Comparison Table ─────────────────────────────────────────────────
     with st.expander("📋 Full Comparison Table"):
         categories_clean = ["Global Warming (kg CO₂-eq)", "Freshwater Eutrophication (kg P-eq)",

@@ -185,27 +185,22 @@ with tab1:
 
     st.markdown("---")
 
-    # ══════════════════════════════════════════════════════════════════════════════
-# 🌱 CARBON CREDIT CALCULATOR (CCTS ONLY)
+# ══════════════════════════════════════════════════════════════════════════════
+# 🌱 CARBON CREDIT CALCULATOR (CCTS — 1 ha basis)
 # ══════════════════════════════════════════════════════════════════════════════
 
 st.subheader("🌱 Carbon Credit Potential (CCTS)")
+st.caption("All results are calculated per hectare (1 ha) — consistent with LCA functional unit")
+
+# ── Fixed Functional Unit ─────────────────────────────────────────────────────
+field_size = 1.0
 
 # ── Inputs ────────────────────────────────────────────────────────────────────
-col1, col2 = st.columns(2)
-
-with col1:
-    buffer_pct = st.slider(
-        "Permanence Buffer (%)",
-        min_value=10, max_value=30, value=20, step=1,
-        help="Applied only to soil carbon credits"
-    )
-
-with col2:
-    field_size = st.number_input(
-        "Field Size (ha)",
-        min_value=0.1, value=1.0, step=0.1
-    )
+buffer_pct = st.slider(
+    "Permanence Buffer (%)",
+    min_value=10, max_value=30, value=20, step=1,
+    help="Applied only to soil carbon credits"
+)
 
 # ── SOC Scenario ──────────────────────────────────────────────────────────────
 soc_choice = st.selectbox(
@@ -232,19 +227,17 @@ CCTS_HIGH = 900
 buffer_fraction = buffer_pct / 100
 
 # ── Credits Calculation ───────────────────────────────────────────────────────
-# Emission Reduction Credits
-er_credits_ha = max(0, (conv_out[0] - blend_out[0]) / 1000)
-er_credits_total = er_credits_ha * field_size
+# Emission Reduction Credits (per ha)
+er_credits = max(0, (conv_out[0] - blend_out[0]) / 1000)
 
-# Soil Carbon Credits
-soc_gross_ha = SOC_RATE * C_TO_CO2
-soc_credits_ha = soc_gross_ha * (1 - buffer_fraction)
-soc_credits_total = soc_credits_ha * field_size
+# Soil Carbon Credits (per ha)
+soc_gross = SOC_RATE * C_TO_CO2
+soc_credits = soc_gross * (1 - buffer_fraction)
 
-# Total
-total_credits = er_credits_total + soc_credits_total
+# Total (per ha)
+total_credits = er_credits + soc_credits
 
-# ── Market Value ──────────────────────────────────────────────────────────────
+# ── Market Value (per ha) ─────────────────────────────────────────────────────
 ccts_low_val  = total_credits * CCTS_LOW
 ccts_high_val = total_credits * CCTS_HIGH
 
@@ -252,36 +245,20 @@ ccts_high_val = total_credits * CCTS_HIGH
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("📉 Emission Reduction", f"{er_credits_total:.3f} t CO₂-eq")
+    st.metric("📉 Emission Reduction (per ha)", f"{er_credits:.3f} t CO₂-eq")
 
 with col2:
-    st.metric("🌱 Soil Carbon", f"{soc_credits_total:.3f} t CO₂-eq")
+    st.metric("🌱 Soil Carbon (per ha)", f"{soc_credits:.3f} t CO₂-eq")
 
 with col3:
-    st.metric("🏆 Total Credits", f"{total_credits:.3f} t CO₂-eq")
+    st.metric("🏆 Total Credits (per ha)", f"{total_credits:.3f} t CO₂-eq")
 
-st.markdown("##### 💰 Estimated Value (CCTS)")
+st.markdown("##### 💰 Estimated Value (per ha, CCTS)")
 
 st.info(
     f"₹{ccts_low_val:,.0f} – ₹{ccts_high_val:,.0f}\n\n"
     f"₹{CCTS_LOW}–₹{CCTS_HIGH} per t CO₂-eq"
 )
-
-    # ── Full Comparison Table ─────────────────────────────────────────────────
-with st.expander("📋 Full Comparison Table"):
-        categories_clean = ["Global Warming (kg CO₂-eq)", "Freshwater Eutrophication (kg P-eq)",
-                            "Terrestrial Acidification (kg SO₂-eq)", "Terrestrial Ecotoxicity (CTUe)"]
-        comparison_df = pd.DataFrame({
-            "Impact Category" : categories_clean,
-            "Conventional"    : [IMPACT_FORMATS[i].format(conv_out[i])  for i in range(4)],
-            f"Blend ({int(alpha*100)}% Org)": [IMPACT_FORMATS[i].format(blend_out[i]) for i in range(4)],
-            "Full Organic"    : [IMPACT_FORMATS[i].format(org_out[i])   for i in range(4)],
-            "Δ Conv→Blend"    : [f"{((blend_out[i]-conv_out[i])/conv_out[i])*100:+.1f}%" for i in range(4)],
-        })
-        st.dataframe(comparison_df, use_container_width=True, hide_index=True)
-
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — SINGLE SYSTEM PREDICTOR
 # ══════════════════════════════════════════════════════════════════════════════

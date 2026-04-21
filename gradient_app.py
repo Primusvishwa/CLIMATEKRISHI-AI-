@@ -190,74 +190,74 @@ with tab1:
 # ══════════════════════════════════════════════════════════════════════════════
 
 st.subheader("🌱 Carbon Credit Potential (CCTS)")
-st.caption("All results are calculated per hectare (1 ha) — consistent with LCA functional unit")
-
-# ── Fixed Functional Unit ─────────────────────────────────────────────────────
-field_size = 1.0
+st.caption("Soil carbon credits only — tonnes CO₂-eq per hectare (t CO₂-eq/ha)")
 
 # ── Inputs ────────────────────────────────────────────────────────────────────
 buffer_pct = st.slider(
     "Permanence Buffer (%)",
     min_value=10, max_value=30, value=20, step=1,
-    help="Applied only to soil carbon credits"
+    help="Applied to account for uncertainty and reversal risk"
 )
 
-# ── SOC Scenario ──────────────────────────────────────────────────────────────
-soc_choice = st.selectbox(
-    "Soil Carbon Scenario",
-    [
-        "Low Sequestration (Baseline Systems)",
-        "Typical Sequestration (Improved Practices)",
-        "High Sequestration (Advanced Systems)"
-    ]
-)
-
-if soc_choice == "Low Sequestration (Baseline Systems)":
-    SOC_RATE = 0.4
-elif soc_choice == "Typical Sequestration (Improved Practices)":
-    SOC_RATE = 0.8
-else:
-    SOC_RATE = 1.155
+buffer_fraction = buffer_pct / 100
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 C_TO_CO2 = 3.667
 CCTS_LOW  = 600
 CCTS_HIGH = 900
 
-buffer_fraction = buffer_pct / 100
+# ── Amendment Parameters ──────────────────────────────────────────────────────
+FYM_DM = 0.25
+FYM_C  = 0.25
+FYM_H  = 0.25
 
-# ── Credits Calculation ───────────────────────────────────────────────────────
-# Emission Reduction Credits (per ha)
-er_credits = max(0, (conv_out[0] - blend_out[0]) / 1000)
+COMPOST_DM = 0.55
+COMPOST_C  = 0.25
+COMPOST_H  = 0.35
 
-# Soil Carbon Credits (per ha)
-soc_gross = SOC_RATE * C_TO_CO2
-soc_credits = soc_gross * (1 - buffer_fraction)
+# ── Soil Carbon Calculation ───────────────────────────────────────────────────
 
-# Total (per ha)
-total_credits = er_credits + soc_credits
+# FYM contribution (kg C)
+soc_fym_kgC = manure * FYM_DM * FYM_C * FYM_H
 
-# ── Market Value (per ha) ─────────────────────────────────────────────────────
-ccts_low_val  = total_credits * CCTS_LOW
-ccts_high_val = total_credits * CCTS_HIGH
+# Compost contribution (kg C)
+soc_compost_kgC = compost * COMPOST_DM * COMPOST_C * COMPOST_H
+
+# Total SOC (kg C)
+soc_total_kgC = soc_fym_kgC + soc_compost_kgC
+
+# Convert to tonnes C
+soc_total_tC = soc_total_kgC / 1000
+
+# Convert to tonnes CO2-eq
+soc_total_tCO2 = soc_total_tC * C_TO_CO2
+
+# Apply buffer → final credits
+soc_credits_tCO2 = soc_total_tCO2 * (1 - buffer_fraction)
+
+# ── Market Value ──────────────────────────────────────────────────────────────
+ccts_low_val  = soc_credits_tCO2 * CCTS_LOW
+ccts_high_val = soc_credits_tCO2 * CCTS_HIGH
 
 # ── Display ───────────────────────────────────────────────────────────────────
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 
 with col1:
-    st.metric("📉 Emission Reduction (per ha)", f"{er_credits:.3f} t CO₂-eq")
+    st.metric("🌱 Soil Carbon Credits (per ha)", f"{soc_credits_tCO2:.3f} t CO₂-eq")
 
 with col2:
-    st.metric("🌱 Soil Carbon (per ha)", f"{soc_credits:.3f} t CO₂-eq")
-
-with col3:
-    st.metric("🏆 Total Credits (per ha)", f"{total_credits:.3f} t CO₂-eq")
+    st.metric("📦 SOC Stored (before buffer)", f"{soc_total_tCO2:.3f} t CO₂-eq")
 
 st.markdown("##### 💰 Estimated Value (per ha, CCTS)")
 
 st.info(
     f"₹{ccts_low_val:,.0f} – ₹{ccts_high_val:,.0f}\n\n"
     f"₹{CCTS_LOW}–₹{CCTS_HIGH} per t CO₂-eq"
+)
+
+st.caption(
+    "Credits are based on stabilized soil carbon from FYM and compost inputs, "
+    "adjusted using a permanence buffer. No emission reduction credits are included."
 )
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — SINGLE SYSTEM PREDICTOR
